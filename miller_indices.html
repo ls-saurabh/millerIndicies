@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Miller Indices | Engineering Physics</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a1322;--bg2:#101c33;--ink:#eef3fb;--mut:#9fb0c9;--line:#26385a;--cy:#38d6f5;--am:#ffc247;--card:#13223d}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--ink);font-family:"Segoe UI",Inter,Arial,sans-serif;line-height:1.55}
+#bgcanvas{position:fixed;inset:0;z-index:0;opacity:.5}
+.deck{position:fixed;inset:0;z-index:1}
+.slide{position:absolute;inset:0;padding:56px 8% 90px;display:flex;flex-direction:column;justify-content:center;opacity:0;visibility:hidden;transform:translateX(60px);transition:opacity .6s,transform .6s,visibility .6s;overflow-y:auto}
+.slide.active{opacity:1;visibility:visible;transform:none}
+.slide.past{transform:translateX(-60px)}
+.wrap{width:min(1080px,100%);margin:0 auto}
+h1{font-size:clamp(46px,9vw,100px);line-height:.95;letter-spacing:-.05em}
+h2{font-size:clamp(30px,4.6vw,52px);line-height:1.08;letter-spacing:-.03em;margin-bottom:14px}
+h3{font-size:19px;margin-bottom:6px}
+.sub{font-size:clamp(17px,2.2vw,24px);color:var(--mut);max-width:760px;margin:18px 0 28px}
+.lead{color:var(--mut);font-size:18px;max-width:780px;margin-bottom:22px}
+.cy{color:var(--cy)}.am{color:var(--am)}
+.tag{display:inline-block;color:var(--cy);border:1px solid var(--line);border-radius:6px;padding:4px 12px;font-size:14px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.g3{grid-template-columns:repeat(3,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+.card p,.card li{color:var(--mut);font-size:15.5px}
+ul{padding-left:20px}li{margin:7px 0}
+.meta{display:flex;flex-wrap:wrap;gap:12px}
+.meta div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 18px;min-width:200px}
+.meta small{display:block;color:var(--mut);font-size:12px}
+.two{display:grid;grid-template-columns:1.05fr 1fr;gap:28px;align-items:center}
+.formula{background:#050b16;border:1px solid var(--line);border-radius:12px;padding:18px;text-align:center;font-size:clamp(26px,4vw,42px);font-weight:700;letter-spacing:.06em;margin:18px 0}
+.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:20px;position:relative}
+.step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px}
+.step b{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--cy);color:#06202a;margin-bottom:10px}
+.step p{color:var(--mut);font-size:14px}
+.step em{display:block;margin-top:8px;font-style:normal;color:var(--am);font-size:14px}
+.note{margin-top:18px;padding:14px 18px;border-left:4px solid var(--am);background:var(--bg2);color:var(--mut);border-radius:0 10px 10px 0}
+.calc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 24px}
+.row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 0;font-size:21px;font-weight:600}
+.row>span:first-child{width:150px;color:var(--mut);font-size:15px;font-weight:500}
+.bx{background:#0c3a4a;border:1px solid #1d6a82;padding:4px 14px;border-radius:8px}
+.ans{margin-top:10px;text-align:center;font-size:28px;font-weight:800;color:#06202a;background:var(--am);border-radius:10px;padding:10px}
+.tabs{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.tabs button{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 16px;font:inherit;font-weight:600;cursor:pointer;transition:.2s}
+.tabs button.on,.tabs button:hover{background:var(--cy);color:#06202a;border-color:var(--cy)}
+svg text{font-family:inherit}
+.plane{fill:rgba(255,194,71,.35);stroke:var(--am);stroke-width:2.5;transition:all .5s}
+.edge{stroke:#5d7399;stroke-width:1.5;fill:none}
+.axis{stroke:var(--cy);stroke-width:2}
+table{width:100%;border-collapse:collapse;font-size:15.5px}
+th,td{padding:9px 12px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--cy)}td{color:var(--mut)}
+.bar{text-decoration:overline;text-decoration-thickness:2px}
+.quote{font-size:clamp(23px,3.6vw,38px);font-weight:700;max-width:820px;letter-spacing:-.02em;margin:20px 0}
+
+/* entrance animations: only fire when slide becomes active */
+.a{opacity:0;transform:translateY(24px)}
+.active .a{animation:up .7s cubic-bezier(.2,.8,.2,1) forwards;animation-delay:calc(var(--i,0)*.14s + .2s)}
+@keyframes up{to{opacity:1;transform:none}}
+.active .pop{animation:pop .6s cubic-bezier(.3,1.5,.5,1) forwards;animation-delay:calc(var(--i,0)*.5s + .5s);opacity:0;transform:scale(.7)}
+@keyframes pop{to{opacity:1;transform:none}}
+.glow{animation:glow 3s ease-in-out infinite}
+@keyframes glow{50%{text-shadow:0 0 28px rgba(56,214,245,.7)}}
+.draw{stroke-dasharray:600;stroke-dashoffset:600}
+.active .draw{animation:dr 1.6s .4s forwards}
+@keyframes dr{to{stroke-dashoffset:0}}
+.float{animation:fl 5s ease-in-out infinite}
+@keyframes fl{50%{transform:translateY(-8px)}}
+
+/* controls */
+.ctrl{position:fixed;left:0;right:0;bottom:0;z-index:10;height:64px;display:flex;align-items:center;justify-content:center;gap:16px;background:linear-gradient(transparent,rgba(5,11,22,.9))}
+.ctrl button{width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:20px;cursor:pointer;transition:.2s}
+.ctrl button:hover:not(:disabled){background:var(--cy);color:#06202a}
+.ctrl button:disabled{opacity:.3;cursor:default}
+.ctrl button:focus-visible,.tabs button:focus-visible{outline:3px solid var(--am);outline-offset:2px}
+#count{min-width:70px;text-align:center;color:var(--mut);font-size:15px}
+#prog{position:fixed;top:0;left:0;height:4px;background:var(--cy);z-index:11;transition:width .5s}
+.hint{position:fixed;top:14px;right:20px;z-index:10;color:var(--mut);font-size:13px}
+@media(max-width:800px){.grid,.g3,.steps,.two{grid-template-columns:1fr}.row>span:first-child{width:100%}.hint{display:none}.slide{padding:40px 6% 90px;justify-content:flex-start}}
+@media(prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-delay:0s!important;transition-duration:.01s!important}}
+</style>
+</head>
+<body>
+<canvas id="bgcanvas"></canvas>
+<div id="prog"></div>
+<div class="hint">← → keys, or swipe</div>
+
+<main class="deck" id="deck">
+
+<!-- 1 Title -->
+<section class="slide active">
+<div class="wrap">
+  <span class="tag a" style="--i:0">Class Presentation</span>
+  <h1 class="a glow" style="--i:1">Miller<br>Indices</h1>
+  <p class="sub a" style="--i:2">A simple notation for describing the orientation of planes inside a crystal.</p>
+  <div class="meta a" style="--i:3">
+    <div><small>Presented by</small><strong>Saurabh Kumar</strong></div>
+    <div><small>Subject</small><strong>Engineering Physics</strong></div>
+    <div><small>Professor</small><strong>Dr. Paramjeet Ma'am</strong></div>
+  </div>
+</div>
+</section>
+
+<!-- 2 Background -->
+<section class="slide">
+<div class="wrap">
+  <span class="tag a" style="--i:0">Background</span>
+  <h2 class="a" style="--i:1">Why do we need a notation for planes?</h2>
+  <p class="lead a" style="--i:2">A crystal is a repeating 3D lattice of atoms. Planes through those atoms have very different densities, spacings and properties, so we need a short, unambiguous name for each one.</p>
+  <div class="grid g3">
+    <div class="card a" style="--i:3"><h3 class="cy">History</h3><p>Introduced by British mineralogist William Hallowes Miller in 1839 and still the standard in crystallography today.</p></div>
+    <div class="card a" style="--i:4"><h3 class="cy">Lattice basics</h3><p>The unit cell is described by three axes (a, b, c) along x, y and z. In a cubic crystal, a = b = c.</p></div>
+    <div class="card a" style="--i:5"><h3 class="cy">The problem</h3><p>Intercepts like "half, third, infinity" are awkward. Reciprocals turn them into clean whole numbers.</p></div>
+  </div>
+</div>
+</section>
+
+<!-- 3 Concept -->
+<section class="slide">
+<div class="wrap two">
+  <div>
+    <span class="tag a" style="--i:0">Concept</span>
+    <h2 class="a" style="--i:1">What are Miller indices?</h2>
+    <p class="lead a" style="--i:2">A set of three integers that label a family of parallel crystal planes. They come from the plane's intercepts with the x, y and z axes.</p>
+    <div class="formula a pop" style="--i:1">( h &nbsp;k &nbsp;l )</div>
+    <ul class="a" style="--i:4">
+      <li><b class="am">h</b> relates to the x-axis intercept</li>
+      <li><b class="am">k</b> relates to the y-axis intercept</li>
+      <li><b class="am">l</b> relates to the z-axis intercept</li>
+    </ul>
+  </div>
+  <div class="card a" style="--i:3">
+    <h3>Why are they used?</h3>
+    <ul>
+      <li>To identify and name different planes in a crystal</li>
+      <li>To describe the orientation of crystal planes</li>
+      <li>To calculate interplanar spacing</li>
+      <li>To interpret X-ray diffraction (Bragg's law)</li>
+      <li>To study cleavage, slip and surface properties</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<!-- 4 Steps -->
+<section class="slide">
+<div class="wrap">
+  <span class="tag a" style="--i:0">Method</span>
+  <h2 class="a" style="--i:1">How to find Miller indices</h2>
+  <p class="lead a" style="--i:2">Four steps. Each one feeds the next.</p>
+  <div class="steps">
+    <div class="step a" style="--i:3"><b>1</b><h3>Find intercepts</h3><p>Note where the plane cuts the x, y and z axes, in units of a, b, c.</p><em>e.g. 1, 2, ∞</em></div>
+    <div class="step a" style="--i:4"><b>2</b><h3>Take reciprocals</h3><p>Invert each intercept.</p><em>1, ½, 0</em></div>
+    <div class="step a" style="--i:5"><b>3</b><h3>Clear fractions</h3><p>Multiply by the smallest number that removes all fractions (the LCM of the denominators).</p><em>×2 → 2, 1, 0</em></div>
+    <div class="step a" style="--i:6"><b>4</b><h3>Write (hkl)</h3><p>Enclose the integers in parentheses, with no commas.</p><em>(210)</em></div>
+  </div>
+  <div class="note a" style="--i:7"><b class="am">Important:</b> a plane parallel to an axis never meets it, so its intercept is ∞ and the reciprocal is <b>0</b>.</div>
+</div>
+</section>
+
+<!-- 5 Example 1 -->
+<section class="slide">
+<div class="wrap">
+  <span class="tag a" style="--i:0">Worked example 1</span>
+  <h2 class="a" style="--i:1">Intercepts 1, 2 and ∞</h2>
+  <p class="lead a" style="--i:2">A plane cuts x at 1, y at 2 and runs parallel to z.</p>
+  <div class="calc">
+    <div class="row pop" style="--i:0"><span>Intercepts</span><span class="bx">1</span><span class="bx">2</span><span class="bx">∞</span></div>
+    <div class="row pop" style="--i:1"><span>Reciprocals</span><span class="bx">1/1 = 1</span><span class="bx">1/2</span><span class="bx">1/∞ = 0</span></div>
+    <div class="row pop" style="--i:2"><span>Multiply by 2</span><span class="bx">2</span><span class="bx">1</span><span class="bx">0</span></div>
+    <div class="ans pop" style="--i:3">Miller indices = (2 1 0)</div>
+  </div>
+</div>
+</section>
+
+<!-- 6 Example 2 -->
+<section class="slide">
+<div class="wrap">
+  <span class="tag a" style="--i:0">Worked example 2</span>
+  <h2 class="a" style="--i:1">Intercepts 2, 3 and 1</h2>
+  <p class="lead a" style="--i:2">Here every intercept is finite, so the fractions need a common multiplier.</p>
+  <div class="calc">
+    <div class="row pop" style="--i:0"><span>Intercepts</span><span class="bx">2</span><span class="bx">3</span><span class="bx">1</span></div>
+    <div class="row pop" style="--i:1"><span>Reciprocals</span><span class="bx">1/2</span><span class="bx">1/3</span><span class="bx">1</span></div>
+    <div class="row pop" style="--i:2"><span>LCM of 2, 3, 1</span><span class="bx">6</span></div>
+    <div class="row pop" style="--i:3"><span>Multiply by 6</span><span class="bx">3</span><span class="bx">2</span><span class="bx">6</span></div>
+    <div class="ans pop" style="--i:4">Miller indices = (3 2 6)</div>
+  </div>
+</div>
+</section>
+
+<!-- 7 Cube planes -->
+<section class="slide">
+<div class="wrap two">
+  <div>
+    <span class="tag a" style="--i:0">Visualise</span>
+    <h2 class="a" style="--i:1">Common planes in a cube</h2>
+    <p class="lead a" style="--i:2">Pick a plane to see it inside the unit cell.</p>
+    <div class="tabs a" style="--i:3" id="tabs">
+      <button data-p="100" class="on">(100)</button>
+      <button data-p="110">(110)</button>
+      <button data-p="111">(111)</button>
+    </div>
+    <div class="card a" style="--i:4"><h3 id="pt" class="am"></h3><p id="pd"></p></div>
+  </div>
+  <svg class="a float" style="--i:2" viewBox="0 0 400 360" role="img" aria-label="Unit cube with selected plane">
+    <g class="edge" id="cube"></g>
+    <polygon class="plane" id="plane" points="0,0"/>
+    <g id="axes"></g>
+  </svg>
+</div>
+</section>
+
+<!-- 8 Interplanar spacing -->
+<section class="slide">
+<div class="wrap">
+  <span class="tag a" style="--i:0">Application</span>
+  <h2 class="a" style="--i:1">Interplanar spacing</h2>
+  <p class="lead a" style="--i:2">For a cubic crystal with lattice constant a, the distance between adjacent (hkl) planes is:</p>
+  <div class="formula a pop" style="--i:1">d = a / √(h² + k² + l²)</div>
+  <div class="card a" style="--i:4">
+    <table>
+      <tr><th>Plane</th><th>h² + k² + l²</th><th>d</th></tr>
+      <tr><td>(100)</td><td>1</td><td>a</td></tr>
+      <tr><td>(110)</td><td>2</td><td>a / √2 ≈ 0.707a</td></tr>
+      <tr><td>(111)</td><td>3</td><td>a / √3 ≈ 0.577a</td></tr>
+    </table>
+  </div>
+  <p class="note a" style="--i:5">This d is the same quantity used in Bragg's law, nλ = 2d sinθ, to analyse X-ray diffraction patterns.</p>
+</div>
+</section>
+
+<!-- 9 Key points -->
+<section class="slide">
+<div class="wrap">
+  <span class="tag a" style="--i:0">Key points</span>
+  <h2 class="a" style="--i:1">Remember these rules</h2>
+  <div class="grid">
+    <div class="card a" style="--i:2"><h3 class="cy">Brackets matter</h3><p>(hkl) is a single plane, {hkl} is a family of equivalent planes, [uvw] is a direction. For example, {100} in a cube includes (100), (010) and (001).</p></div>
+    <div class="card a" style="--i:3"><h3 class="cy">Parallel axis</h3><p>A plane parallel to an axis has an infinite intercept, which gives a zero index.</p></div>
+    <div class="card a" style="--i:4"><h3 class="cy">Negative index</h3><p>A negative index is written with a bar over the number, for example (1 <span class="bar">1</span> 0) is read "one, bar one, zero".</p></div>
+    <div class="card a" style="--i:5"><h3 class="cy">Whole numbers</h3><p>Always reduce to the smallest whole-number set. Parallel planes share the same indices, and larger indices mean planes packed more closely.</p></div>
+  </div>
+</div>
+</section>
+
+<!-- 10 Conclusion -->
+<section class="slide">
+<div class="wrap" style="text-align:center">
+  <span class="tag a" style="--i:0">Conclusion</span>
+  <h2 class="a" style="--i:1">Summary</h2>
+  <p class="quote a" style="--i:2">Miller indices give us a simple mathematical way to describe the orientation of planes inside a crystal.</p>
+  <p class="lead a" style="--i:3;margin-left:auto;margin-right:auto">Find the intercepts, take reciprocals, clear fractions, and write the result as <b class="am">(hkl)</b>.</p>
+  <div class="meta a" style="--i:4;justify-content:center"><div><small>Thank you</small><strong>Questions?</strong></div></div>
+</div>
+</section>
+
+</main>
+
+<div class="ctrl">
+  <button id="prev" aria-label="Previous slide">&#8592;</button>
+  <span id="count"></span>
+  <button id="next" aria-label="Next slide">&#8594;</button>
+</div>
+
+<script>
+(function(){
+  /* ---- slide navigation ---- */
+  var slides=[].slice.call(document.querySelectorAll('.slide')),cur=0;
+  var prev=document.getElementById('prev'),next=document.getElementById('next'),
+      count=document.getElementById('count'),prog=document.getElementById('prog');
+  function go(n){
+    n=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach(function(s,i){
+      s.classList.remove('active','past');
+      if(i<n)s.classList.add('past');
+    });
+    void slides[n].offsetWidth;
+    slides[n].classList.add('active');
+    slides[n].scrollTop=0;
+    cur=n;
+    count.textContent=(n+1)+' / '+slides.length;
+    prev.disabled=n===0;next.disabled=n===slides.length-1;
+    prog.style.width=((n+1)/slides.length*100)+'%';
+    if(history.replaceState)history.replaceState(null,'','#'+(n+1));
+  }
+  prev.onclick=function(){go(cur-1)};
+  next.onclick=function(){go(cur+1)};
+  document.addEventListener('keydown',function(e){
+    if(['ArrowRight','PageDown',' '].indexOf(e.key)>-1){e.preventDefault();go(cur+1)}
+    else if(['ArrowLeft','PageUp'].indexOf(e.key)>-1){e.preventDefault();go(cur-1)}
+    else if(e.key==='Home')go(0);
+    else if(e.key==='End')go(slides.length-1);
+  });
+  var sx=null;
+  document.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
+  document.addEventListener('touchend',function(e){
+    if(sx===null)return;var dx=e.changedTouches[0].clientX-sx;
+    if(Math.abs(dx)>60)go(cur+(dx<0?1:-1));sx=null;
+  });
+  var start=parseInt(location.hash.slice(1),10);
+  go(start?start-1:0);
+
+  /* ---- isometric unit cube with selectable plane ---- */
+  var C=170,ox=200,oy=165;
+  function P(x,y,z){return [ox+(y-x)*C*.5, oy+(x+y)*C*.29-z*C*.78]}
+  function pts(a){return a.map(function(p){return P(p[0],p[1],p[2]).join(',')}).join(' ')}
+  var cube=document.getElementById('cube');
+  var E=[[0,0,0,1,0,0],[0,0,0,0,1,0],[0,0,0,0,0,1],[1,0,0,1,1,0],[0,1,0,1,1,0],[1,0,0,1,0,1],
+         [0,1,0,0,1,1],[0,0,1,1,0,1],[0,0,1,0,1,1],[1,1,0,1,1,1],[1,0,1,1,1,1],[0,1,1,1,1,1]];
+  cube.innerHTML=E.map(function(e){var a=P(e[0],e[1],e[2]),b=P(e[3],e[4],e[5]);
+    return '<line x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'"/>'}).join('');
+  var ax=document.getElementById('axes'),o=P(0,0,0),
+      L=[['x',P(1.35,0,0)],['y',P(0,1.35,0)],['z',P(0,0,1.35)]];
+  ax.innerHTML=L.map(function(l){return '<line class="axis" x1="'+o[0]+'" y1="'+o[1]+'" x2="'+l[1][0]+'" y2="'+l[1][1]+'"/><text x="'+(l[1][0]+6)+'" y="'+(l[1][1]+4)+'" fill="#38d6f5" font-size="16" font-weight="700">'+l[0]+'</text>'}).join('');
+  var planes={
+    '100':{p:[[1,0,0],[1,1,0],[1,1,1],[1,0,1]],t:'(100) — face plane',d:'Intercepts 1, ∞, ∞. It is parallel to y and z, so the indices are 1, 0, 0.'},
+    '110':{p:[[1,0,0],[0,1,0],[0,1,1],[1,0,1]],t:'(110) — diagonal plane',d:'Intercepts 1, 1, ∞. It cuts x and y at 1 and is parallel to z.'},
+    '111':{p:[[1,0,0],[0,1,0],[0,0,1]],t:'(111) — corner plane',d:'Intercepts 1, 1, 1. It cuts all three axes at 1 and forms an equilateral triangle.'}
+  };
+  var pl=document.getElementById('plane'),pt=document.getElementById('pt'),pd=document.getElementById('pd');
+  function show(k){pl.setAttribute('points',pts(planes[k].p));pt.textContent=planes[k].t;pd.textContent=planes[k].d;
+    [].forEach.call(document.querySelectorAll('#tabs button'),function(b){b.classList.toggle('on',b.dataset.p===k)})}
+  [].forEach.call(document.querySelectorAll('#tabs button'),function(b){b.onclick=function(){show(b.dataset.p)}});
+  show('100');
+
+  /* ---- subtle lattice background ---- */
+  var cv=document.getElementById('bgcanvas'),cx=cv.getContext('2d'),W,H,t=0;
+  function size(){W=cv.width=innerWidth;H=cv.height=innerHeight}
+  size();addEventListener('resize',size);
+  var still=matchMedia('(prefers-reduced-motion:reduce)').matches;
+  function draw(){
+    cx.clearRect(0,0,W,H);var g=70;
+    for(var x=0;x<W+g;x+=g)for(var y=0;y<H+g;y+=g){
+      var dx=Math.sin(t+x*.01)*5,dy=Math.cos(t+y*.01)*5;
+      cx.fillStyle='rgba(56,214,245,.35)';cx.beginPath();cx.arc(x+dx,y+dy,2,0,6.3);cx.fill();
+      cx.strokeStyle='rgba(56,214,245,.08)';cx.beginPath();cx.moveTo(x+dx,y+dy);cx.lineTo(x+g+Math.sin(t+(x+g)*.01)*5,y+dy);cx.stroke();
+      cx.beginPath();cx.moveTo(x+dx,y+dy);cx.lineTo(x+dx,y+g+Math.cos(t+(y+g)*.01)*5);cx.stroke();
+    }
+    t+=.01;if(!still)requestAnimationFrame(draw)
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
